@@ -1,36 +1,40 @@
 package serverless
 
 import (
-  "encoding/json"
-  "fmt"
-  "html"
-  "net/http"
-  "imageUri"
+  "bytes"
+  "image"
+  "image/jpeg"
   "io"
+  "net/http"
 )
 
-var (
-  imageUri string
-  image io.ReadCloser
-)
-func init() {
-  if baseUri == nil {
-    imageUri = os.GetEnv("BASE_IMAGE_URI")
-  }
-  if image == nil {
-    var err error
-    imagePayload, err := http.Get(baseUri)
-    if err != nil {
-      fmt.Fprintf(w, "Error %d", err)
-      return
-    }
-    defer imagePayload.Body.Close()
-    image = imagePayload.Body
-  }
-}
 func SignImage(w http.ResponseWriter, r *http.Request) {
-  // TODO: how should your data be??
   cors := checkCORS(w, r); if cors {
     return
+  }
+  imageBuffer, _, err := r.FormFile("picture")
+  if err != nil {
+    panic(err)
+  }
+  defer imageBuffer.Close()
+  name := r.FormValue("name")
+  if name == "" {
+    name = "next"
+  }
+  var m image.Image
+  m, err = jpeg.Decode(imageBuffer)
+  if err != nil {
+    panic(err)
+  }
+  watermark := signature(name)
+  signed := drawImage(m, watermark)
+
+  var buff bytes.Buffer
+  err = jpeg.Encode(&buff, signed, nil)
+  if err != nil {
+    panic(err)
+  }
+  if _, err = io.Copy(w, &buff); err != nil {
+    panic(err)
   }
 }
