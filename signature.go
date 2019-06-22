@@ -1,4 +1,4 @@
-package serverless
+package main
 
 import (
 	"github.com/fogleman/gg"

@@ -1,11 +1,14 @@
-package serverless
+package main
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/jpeg"
 	"io"
+	"log"
 	"net/http"
+	"os"
 )
 
 func SignImage(w http.ResponseWriter, r *http.Request) {
@@ -38,4 +41,13 @@ func SignImage(w http.ResponseWriter, r *http.Request) {
 	if _, err = io.Copy(w, &buff); err != nil {
 		panic(err)
 	}
+}
+
+func main() {
+	http.HandleFunc("/", SignImage)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), nil))
 }
