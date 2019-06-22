@@ -8,6 +8,13 @@ import (
 	"net/http"
 )
 
+var defaultWatermark image.Image
+
+func init () {
+	if defaultWatermark == nil {
+		defaultWatermark = signature("Google")
+	}
+}
 func SignImage(w http.ResponseWriter, r *http.Request) {
 	cors := checkCORS(w, r)
 	if cors {
@@ -18,16 +25,22 @@ func SignImage(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	defer imageBuffer.Close()
-	name := r.FormValue("name")
-	if name == "" {
-		name = "next"
-	}
+
 	var m image.Image
 	m, err = jpeg.Decode(imageBuffer)
 	if err != nil {
 		panic(err)
 	}
-	watermark := signature(name)
+
+	name := r.FormValue("name")
+	var watermark image.Image
+	switch name {
+	  case "":
+			watermark = defaultWatermark
+		default:
+			watermark = signature(name)
+	}
+
 	signed := drawImage(m, watermark)
 
 	var buff bytes.Buffer
